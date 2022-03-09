@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <RootNamespace>Daniels.TriLists.Tests</RootNamespace>
+    <Authors>batourin</Authors>
+    <Description>Crestron TriList Extensions Library Tests</Description>
+    <PackageProjectUrl>https://github.com/uoftdaniels/CrestronTriListExtensionsLibrary.Tests/CrestronTriListExtensionsLibrary.Tests</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/batourin/CrestronTriListExtensionsLibrary</RepositoryUrl>
+    <UserSecretsId>6b9ff673-e638-4bae-b8e3-751fa9463345</UserSecretsId>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.*</AssemblyVersion>
+    <Deterministic>false</Deterministic>
+    <AssemblyName>CrestronTriListExtensionsLibrary.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>CrestronTriListExtensionsLibraryTests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>	
+	
+  <ItemGroup>
+    <Compile Remove="Properties\**" />
+    <EmbeddedResource Remove="Properties\**" />
+    <None Remove="Properties\**" />
+  </ItemGroup>	
+	
+  <ItemGroup>
+    <None Remove="CrestronTriListExtensionsLibrary.3series.projectinfo" />
+    <None Remove="CrestronTriListExtensionsLibrary.projectinfo" />
+  </ItemGroup>	
+	
+  <ItemGroup>
+    <PackageReference Include="Crestron.SimplSharp.SDK.Program" Version="2.18.56" />
+  </ItemGroup>	
+	
+  <ItemGroup>
+    <ProjectReference Include="..\CrestronTriListExtensionsLibrary\CrestronTriListExtensionsLibrary.csproj" />
+  </ItemGroup>	
+	
+</Project>
