@@ -10,8 +10,6 @@ using Crestron.SimplSharp.Reflection;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-
-using System.Reflection.Emit;
 #endif
 
 using Daniels.Common;
@@ -182,12 +180,12 @@ namespace Daniels.TriList
 
         protected void SetJoinValue(JoinAttribute joinAttribute, bool value)
         {
-            SetJoinValue(joinAttribute.Join, value);
+            SetDigitalJoinValue(joinAttribute.Join, value);
         }
 
         protected void SetJoinValue(JoinAttribute joinAttribute, ushort value)
         {
-            SetJoinValue(joinAttribute.Join, value);
+            SetAnalogJoinValue(joinAttribute.Join, value);
         }
 
         protected void SetJoinValue(JoinAttribute joinAttribute, string value)
@@ -195,12 +193,12 @@ namespace Daniels.TriList
             SetSerialJoinValue(joinAttribute.Join, value);
         }
 
-        protected void SetJoinValue(ushort joinNumber, bool value)
+        protected void SetDigitalJoinValue(ushort joinNumber, bool value)
         {
             foreach (BasicTriList triList in _triLists)
                 triList.BooleanInput[_digitalOffset + joinNumber].BoolValue = value;
         }
-        protected void SetJoinValue(ushort joinNumber, ushort value)
+        protected void SetAnalogJoinValue(ushort joinNumber, ushort value)
         {
             foreach(BasicTriList triList in _triLists)
                 triList.UShortInput[_analogOffset + joinNumber].UShortValue = value;

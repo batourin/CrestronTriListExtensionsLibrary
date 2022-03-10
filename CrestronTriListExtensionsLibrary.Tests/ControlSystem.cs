@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Collections.Generic;
 using Crestron.SimplSharp;                          	// For Basic SIMPL# Classes
 using Crestron.SimplSharpPro;                       	// For Basic SIMPL#Pro classes
 using Crestron.SimplSharpPro.CrestronThread;        	// For Threading
@@ -193,7 +194,11 @@ namespace Daniels.TriList.Tests
         {
             try
             {
-                JoinAttributeTest testComponent = new JoinAttributeTest(10, 20, 30, new BasicTriList[] { eisc });
+                //JoinAttributeTest testComponent = new JoinAttributeTest(10, 20, 30, new BasicTriList[] { eisc });
+                //BasicTriList[] trilists = new BasicTriList[] { eisc };
+                List<BasicTriList> triLists = new List<BasicTriList>() { eisc };
+                JoinAttributeTest testComponent = TriListComponentFactory.CreateTriListComponent<JoinAttributeTest>((ushort)10, (ushort)20, (ushort)30, triLists as IEnumerable<BasicTriList>);
+
                 CrestronConsole.PrintLine("PropertyTest={0}", testComponent.PropertyTest);
                 testComponent.PropertyTest = "Test Name setter property";
                 CrestronConsole.PrintLine("PropertyTest={0}", testComponent.PropertyTest);
