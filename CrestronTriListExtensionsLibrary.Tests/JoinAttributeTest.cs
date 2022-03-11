@@ -25,13 +25,13 @@ namespace Daniels.TriList.Tests
 
         }
 
-        [Join(Name = "String Property Feedback", Join = 1, JoinType = eJoinType.Serial, JoinDirection = eJoinDirection.From)]
+        //[Join(Name = "String Property Feedback", Join = 1, JoinType = eJoinType.Serial, JoinDirection = eJoinDirection.From)]
         private string _propertyTest;
-        [Join(Name = "String Property", Join = 1, JoinType = eJoinType.Serial)]
+        //[Join(Name = "String Property", Join = 1, JoinType = eJoinType.Serial)]
         public string PropertyTest
         {
             get { return _propertyTest; }
-            [Join(Name = "String Property Setter", Join = 1, JoinType = eJoinType.Serial)]
+            //[Join(Name = "String Property Setter", Join = 1, JoinType = eJoinType.Serial)]
             set 
             {
                 CrestronConsole.PrintLine("Setting Join#{0} to {1}", 1, value);
@@ -39,12 +39,12 @@ namespace Daniels.TriList.Tests
             }
         }
 
-        [Join(Name = "String Property", Join = 3, JoinType = eJoinType.Serial, JoinDirection = eJoinDirection.Both)]
+        [Join(Name = "String Property", Join = 3, JoinType = eJoinType.Serial)]
         public virtual string VPropertyTest { get; set; }
 
         public ushort SetOnlyProperty
         {
-            [Join(Name = "SetOnlyProperty Test", Join = 1, JoinType = eJoinType.Analog)]
+            //[Join(Name = "SetOnlyProperty Test", Join = 1, JoinType = eJoinType.Analog)]
             set
             {
 #if SSHARP
@@ -63,7 +63,7 @@ namespace Daniels.TriList.Tests
 
         public event EventHandler<ReadOnlyEventArgs<bool>> TestFeedbackCommanded;
 
-        [Join(Name = "Digital Feedback Test", Join = 1, JoinType = eJoinType.Digital, JoinDirection = eJoinDirection.From)]
+        //[Join(Name = "Digital Feedback Test", Join = 1, JoinType = eJoinType.Digital, JoinDirection = eJoinDirection.From)]
         protected virtual void OnTestFeedbackCommanded(ReadOnlyEventArgs<bool> e)
         {
             EventHandler<ReadOnlyEventArgs<bool>> handler = TestFeedbackCommanded;
@@ -71,7 +71,7 @@ namespace Daniels.TriList.Tests
                 handler(this, e);
         }
 
-        [Join(Name = "Set Test Value", Join = 1, JoinType = eJoinType.Analog, JoinDirection = eJoinDirection.To)]
+        //[Join(Name = "Set Test Value", Join = 1, JoinType = eJoinType.Analog, JoinDirection = eJoinDirection.To)]
         public void SetTestValue()
         {
 

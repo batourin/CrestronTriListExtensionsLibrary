@@ -199,10 +199,11 @@ namespace Daniels.TriList.Tests
                 List<BasicTriList> triLists = new List<BasicTriList>() { eisc };
                 JoinAttributeTest testComponent = TriListComponentFactory.CreateTriListComponent<JoinAttributeTest>((ushort)10, (ushort)20, (ushort)30, triLists as IEnumerable<BasicTriList>);
 
-                CrestronConsole.PrintLine("PropertyTest={0}", testComponent.PropertyTest);
-                testComponent.PropertyTest = "Test Name setter property";
-                CrestronConsole.PrintLine("PropertyTest={0}", testComponent.PropertyTest);
-                testComponent.SetOnlyProperty = 16;
+                CrestronConsole.PrintLine("VPropertyTest={0}", testComponent.VPropertyTest);
+                testComponent.VPropertyTest = "Test Name setter property";
+                System.Threading.Thread.Sleep(1000);
+                CrestronConsole.PrintLine("VPropertyTest={0}", testComponent.VPropertyTest);
+                //testComponent.SetOnlyProperty = 16;
             }
             catch (Exception e)
             {

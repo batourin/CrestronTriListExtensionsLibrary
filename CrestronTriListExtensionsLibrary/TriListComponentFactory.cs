@@ -1,17 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Data.Common;
+using System.Linq;
 
 #if SSHARP
 using Crestron.SimplSharp.Reflection;
+using Crestron.SimplSharp.Reflection.Emit;
 #else
-using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 #endif
 
 
@@ -51,22 +49,6 @@ namespace Daniels.TriList
                     TypeBuilder typeBuilder = _moduleBuilder.DefineType(originalType.Name + "Proxy", TypeAttributes.Public, originalType);
                     Crestron.SimplSharp.CrestronConsole.PrintLine("CrestronTriListExtentions: typeBuild created: {0}", typeBuilder.Name);
 
-                    // Adding original constructors
-                    ConstructorInfo[] constructors = originalType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
-                    foreach(ConstructorInfo constructorInfo in originalType.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
-                    {
-                        ParameterInfo[] parameterInfos = constructorInfo.GetParameters();
-                        Type[] constructorParameterTypes = parameterInfos.Select(pi => pi.ParameterType).ToList().ToArray();
-                        ConstructorBuilder constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, constructorParameterTypes);
-                        ILGenerator constructorBuilderILGenerator = constructorBuilder.GetILGenerator();
-                        constructorBuilderILGenerator.Emit(OpCodes.Ldarg_0);
-                        for(int i = 1; i <= constructorParameterTypes.Length; i++)
-                            constructorBuilderILGenerator.Emit(OpCodes.Ldarg, i);
-                        constructorBuilderILGenerator.Emit(OpCodes.Call, constructorInfo);
-                        constructorBuilderILGenerator.Emit(OpCodes.Ret);
-                    }
-
-
                     MethodInfo[] methods = typeBuilder.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
                     foreach (MethodInfo mi in methods)
                     {
@@ -81,13 +63,12 @@ namespace Daniels.TriList
                     MethodInfo digitalJoinSetter = methods.Where(m => m.Name == "SetDigitalJoinValue").FirstOrDefault();
                     MethodInfo analogJoinSetter = methods.Where(m => m.Name == "SetAnalogJoinValue").FirstOrDefault();
                     MethodInfo serialJoinSetter = methods.Where(m => m.Name == "SetSerialJoinValue").FirstOrDefault();
-                    //MethodInfo digitalJoinSetter = typeBuilder.GetMethod("SetJoinValue", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public, null, new Type[] { typeof(ushort), typeof(bool) }, null);
-                    //MethodInfo analogJoinSetter = typeBuilder.GetMethod("SetJoinValue", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public, null, new Type[] { typeof(ushort), typeof(ushort) }, null);
-                    //MethodInfo serialJoinSetter = typeBuilder.GetMethod("SetSerialJoinValue", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public, null, new Type[] { typeof(ushort), typeof(string) }, null);
 
                     Crestron.SimplSharp.CrestronConsole.PrintLine("CrestronTriListExtentions: digitalJoinSetter: {0}", digitalJoinSetter.Name);
                     Crestron.SimplSharp.CrestronConsole.PrintLine("CrestronTriListExtentions: analogJoinSetter: {0}", analogJoinSetter.Name);
                     Crestron.SimplSharp.CrestronConsole.PrintLine("CrestronTriListExtentions: serialJoinSetter: {0}", serialJoinSetter.Name);
+
+                    Dictionary<ushort, FieldBuilder> fieldsToSubScribe = new Dictionary<ushort, FieldBuilder>();
 
                     // Loop through all, event methods usualy protected, i.e. non-public
                     foreach (MemberInfo memberInfo in originalType.GetMembers(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
@@ -108,51 +89,98 @@ namespace Daniels.TriList
 
                             // Create override property matching original
                             PropertyBuilder joinBaseProperty = typeBuilder.DefineProperty(propertyInfo.Name, PropertyAttributes.None, propertyInfo.PropertyType, Type.EmptyTypes);
-                            // Define the "get" accessor method for new overriden property
-                            MethodBuilder joinPropertyGet = typeBuilder.DefineMethod("get_" + propertyInfo.Name, MethodAttributes.Virtual | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, propertyInfo.PropertyType, Type.EmptyTypes);
-                            ILGenerator joinPropertyGetILGenerator = joinPropertyGet.GetILGenerator();
-                            // "this" in to the stack
-                            joinPropertyGetILGenerator.Emit(OpCodes.Ldarg_0);  
-                            // join number from the attribute as int
-                            joinPropertyGetILGenerator.Emit(OpCodes.Ldc_I4, joinAttribute.Join);
-                            // convert loaded in stack int value back to ushort
-                            joinPropertyGetILGenerator.Emit(OpCodes.Conv_U2);
-                            // retrive value from join
-                            //pILGet.Emit(OpCodes.Callvirt, typeof(MongoDatabase).GetMethod("Find", BindingFlags.Public | BindingFlags.Instance, null, new Type[] { typeof(ObjectId) }, null).MakeGenericMethod(propertyInfo.PropertyType));
-                            joinPropertyGetILGenerator.Emit(OpCodes.Ret);
-
-                            // Define the "set" accessor method for new overriden property
-                            MethodBuilder joinPropertySet = typeBuilder.DefineMethod("set_" + propertyInfo.Name, MethodAttributes.Virtual | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, null, new Type[] { propertyInfo.PropertyType });
-                            ILGenerator joinPropertySetILGenerator = joinPropertySet.GetILGenerator();
-                            // "this" in to the stack
-                            joinPropertySetILGenerator.Emit(OpCodes.Ldarg_0);
-                            // join number from the attribute as int
-                            joinPropertySetILGenerator.Emit(OpCodes.Ldc_I4, joinAttribute.Join);
-                            // convert loaded in stack int value back to ushort
-                            joinPropertySetILGenerator.Emit(OpCodes.Conv_U2);
-                            // value of the setter
-                            joinPropertySetILGenerator.Emit(OpCodes.Ldarg_1);
-                            switch(joinAttribute.JoinType)
+                            if(propertyInfo.CanRead)
                             {
-                                case eJoinType.Digital:
-                                    joinPropertySetILGenerator.Emit(OpCodes.Callvirt, digitalJoinSetter);
-                                    break;
-                                case eJoinType.Analog:
-                                    joinPropertySetILGenerator.Emit(OpCodes.Callvirt, analogJoinSetter);
-                                    break;
-                                case eJoinType.Serial:
-                                    joinPropertySetILGenerator.Emit(OpCodes.Callvirt, serialJoinSetter);
-                                    break;
-                            }
-                            joinPropertySetILGenerator.Emit(OpCodes.Ret);
+                                // Create private field for new property getter as storage data from joins
+                                FieldBuilder joinField = typeBuilder.DefineField($"_{propertyInfo.Name}ProxyValue", propertyInfo.PropertyType, FieldAttributes.Private);
 
-                            // Last, we must map the two methods created above to our PropertyBuilder to
-                            // their corresponding behaviors, "get" and "set" respectively.
-                            joinBaseProperty.SetGetMethod(joinPropertyGet);
-                            joinBaseProperty.SetSetMethod(joinPropertySet);
-}
+                                // Define the "get" accessor method for new overriden property
+                                MethodBuilder joinPropertyGet = typeBuilder.DefineMethod("get_" + propertyInfo.Name, MethodAttributes.Virtual | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, propertyInfo.PropertyType, Type.EmptyTypes);
+                                ILGenerator joinPropertyGetILGenerator = joinPropertyGet.GetILGenerator();
+                                // "this" in to the stack
+                                joinPropertyGetILGenerator.Emit(OpCodes.Ldarg_0);
+                                // return backed field
+                                joinPropertyGetILGenerator.Emit(OpCodes.Ldfld, joinField);
+                                joinPropertyGetILGenerator.Emit(OpCodes.Ret);
+                                // Assign getter to the property
+                                joinBaseProperty.SetGetMethod(joinPropertyGet);
+
+                                fieldsToSubScribe[joinAttribute.Join] = joinField;
+                            }
+                            if (propertyInfo.CanWrite)
+                            {
+                                // Define the "set" accessor method for new overriden property
+                                MethodBuilder joinPropertySet = typeBuilder.DefineMethod("set_" + propertyInfo.Name, MethodAttributes.Virtual | MethodAttributes.Public | MethodAttributes.SpecialName | MethodAttributes.HideBySig, null, new Type[] { propertyInfo.PropertyType });
+                                ILGenerator joinPropertySetILGenerator = joinPropertySet.GetILGenerator();
+                                // "this" in to the stack
+                                joinPropertySetILGenerator.Emit(OpCodes.Ldarg_0);
+                                // join number from the attribute as int
+                                joinPropertySetILGenerator.Emit(OpCodes.Ldc_I4, joinAttribute.Join);
+                                // convert loaded in stack int value back to ushort
+                                joinPropertySetILGenerator.Emit(OpCodes.Conv_U2);
+                                // value of the setter
+                                joinPropertySetILGenerator.Emit(OpCodes.Ldarg_1);
+                                switch (joinAttribute.JoinType)
+                                {
+                                    case eJoinType.Digital:
+                                        joinPropertySetILGenerator.Emit(OpCodes.Callvirt, digitalJoinSetter);
+                                        break;
+                                    case eJoinType.Analog:
+                                        joinPropertySetILGenerator.Emit(OpCodes.Callvirt, analogJoinSetter);
+                                        break;
+                                    case eJoinType.Serial:
+                                        joinPropertySetILGenerator.Emit(OpCodes.Callvirt, serialJoinSetter);
+                                        break;
+                                }
+                                joinPropertySetILGenerator.Emit(OpCodes.Ret);
+                                // Assign setter to the property
+                                joinBaseProperty.SetSetMethod(joinPropertySet);
+                            }
+                        }
 #endif
                     }
+
+                    // Adding original constructors
+                    ConstructorInfo[] constructors = originalType.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+                    foreach (ConstructorInfo constructorInfo in originalType.GetConstructors(BindingFlags.Public | BindingFlags.Instance))
+                    {
+                        ParameterInfo[] parameterInfos = constructorInfo.GetParameters();
+                        Type[] constructorParameterTypes = parameterInfos.Select(pi => pi.ParameterType).ToList().ToArray();
+                        ConstructorBuilder constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, constructorParameterTypes);
+                        ILGenerator constructorBuilderILGenerator = constructorBuilder.GetILGenerator();
+                        constructorBuilderILGenerator.Emit(OpCodes.Ldarg_0);
+                        for (int i = 1; i <= constructorParameterTypes.Length; i++)
+                            constructorBuilderILGenerator.Emit(OpCodes.Ldarg, i);
+                        constructorBuilderILGenerator.Emit(OpCodes.Call, constructorInfo);
+
+                        // Subscribe property fields to base events
+                        MethodInfo digitalJoinSubscriber = methods.Where(m => m.Name == "SubscribeDigitalJoin").FirstOrDefault();
+                        MethodInfo analogJoinSubscriber = methods.Where(m => m.Name == "SubscribeAnalogJoin").FirstOrDefault();
+                        MethodInfo serialJoinSubscriber = methods.Where(m => m.Name == "SubscribeSerialJoin").FirstOrDefault();
+
+                        foreach (KeyValuePair<ushort, FieldBuilder> kv in fieldsToSubScribe)
+                        {
+                            // "this" in to the stack
+                            constructorBuilderILGenerator.Emit(OpCodes.Ldarg_0);
+                            // join number from the attribute as int
+                            constructorBuilderILGenerator.Emit(OpCodes.Ldc_I4, kv.Key);
+                            // convert loaded in stack int value back to ushort
+                            constructorBuilderILGenerator.Emit(OpCodes.Conv_U2);
+
+                            constructorBuilderILGenerator.Emit(OpCodes.Ld);
+
+                            if (kv.Value.FieldType == typeof(bool))
+                                constructorBuilderILGenerator.Emit(OpCodes.Callvirt, digitalJoinSubscriber);
+                            else if(kv.Value.FieldType == typeof(ushort))
+                                constructorBuilderILGenerator.Emit(OpCodes.Callvirt, analogJoinSubscriber);
+                            else if (kv.Value.FieldType == typeof(string))
+                                constructorBuilderILGenerator.Emit(OpCodes.Callvirt, serialJoinSubscriber);
+                        }
+
+                        // return
+                        constructorBuilderILGenerator.Emit(OpCodes.Ret);
+                    }
+
                     Crestron.SimplSharp.CrestronConsole.PrintLine("CrestronTriListExtentions: creating type", typeBuilder.Name);
                     proxyType = typeBuilder.CreateType();
                     Crestron.SimplSharp.CrestronConsole.PrintLine("CrestronTriListExtentions: type created", typeBuilder.Name);

@@ -193,6 +193,24 @@ namespace Daniels.TriList
             SetSerialJoinValue(joinAttribute.Join, value);
         }
 
+        protected void SubscribeDigitalJoin(ushort joinNumber, MemberInfo memberInfo)
+        {
+            foreach (BasicTriList triList in _triLists)
+                triList.BooleanOutput[_digitalOffset + joinNumber].UserObject = CreateMemberAction<bool>(memberInfo);
+        }
+        protected void SubscribeAnalogJoin(ushort joinNumber, MemberInfo memberInfo)
+        {
+            foreach (BasicTriList triList in _triLists)
+                triList.UShortOutput[_analogOffset + joinNumber].UserObject = CreateMemberAction<bool>(memberInfo);
+        }
+
+        protected void SubscribeSerialJoin(ushort joinNumber, MemberInfo memberInfo)
+        {
+            foreach (BasicTriList triList in _triLists)
+                triList.StringInput[_serialOffset + joinNumber].UserObject = CreateMemberAction<bool>(memberInfo);
+        }
+
+
         protected void SetDigitalJoinValue(ushort joinNumber, bool value)
         {
             foreach (BasicTriList triList in _triLists)
