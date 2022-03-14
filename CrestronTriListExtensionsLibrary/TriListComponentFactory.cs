@@ -4,6 +4,7 @@ using System.Linq;
 
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.InteropServices;
 
 
 namespace Daniels.TriList
@@ -138,6 +139,7 @@ namespace Daniels.TriList
                         MethodInfo analogJoinSubscriber = methods.Where(m => m.Name == "SubscribeAnalogJoin").FirstOrDefault();
                         MethodInfo serialJoinSubscriber = methods.Where(m => m.Name == "SubscribeSerialJoin").FirstOrDefault();
 
+
                         foreach (KeyValuePair<ushort, FieldBuilder> kv in fieldsToSubScribe)
                         {
                             // "this" in to the stack
@@ -155,6 +157,7 @@ namespace Daniels.TriList
                                 constructorBuilderILGenerator.Emit(OpCodes.Callvirt, analogJoinSubscriber);
                             else if (kv.Value.FieldType == typeof(string))
                                 constructorBuilderILGenerator.Emit(OpCodes.Callvirt, serialJoinSubscriber);
+
                         }
 
                         // return
