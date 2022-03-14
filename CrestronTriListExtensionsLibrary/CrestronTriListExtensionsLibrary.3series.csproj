@@ -86,6 +86,7 @@
     <Compile Include="JoinAttribute.cs" />
     <Compile Include="JoinDirection.cs" />
     <Compile Include="JoinType.cs" />
+    <Compile Include="TriListComponent.3series.cs" />
     <Compile Include="TriListComponent.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CompactFramework.CSharp.targets" />

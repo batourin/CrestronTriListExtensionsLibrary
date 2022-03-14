@@ -1,15 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using Crestron.SimplSharpPro.DeviceSupport;
-using System.Reflection.Emit;
-using System.Runtime.InteropServices;
 
 #if SSHARP
 using Crestron.SimplSharp.Reflection;
 #else
-using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 #endif
 
 using Daniels.Common;
@@ -51,7 +47,17 @@ namespace Daniels.TriList
 
             _triLists.AddRange(triLists);
 
-            Bind();
+            // Subscribe to events from trilist and execute Actions assinged on UserObject property
+            foreach (BasicTriList triList in _triLists)
+                triList.SigChange += (s, e) =>
+                {
+                    if (e.Sig.UserObject is Action<bool>)
+                        (e.Sig.UserObject as Action<bool>)(e.Sig.BoolValue);
+                    else if (e.Sig.UserObject is Action<ushort>)
+                        (e.Sig.UserObject as Action<ushort>)(e.Sig.UShortValue);
+                    else if (e.Sig.UserObject is Action<string>)
+                        (e.Sig.UserObject as Action<string>)(e.Sig.StringValue);
+                };
         }
 
         /// <summary>
@@ -66,7 +72,7 @@ namespace Daniels.TriList
         /// <summary>
         /// Bind trilist feedbacks to fields and event methods
         /// </summary>
-        private void Bind()
+        private void Bind_todelete()
         {
             // Get all methods in this class, and put them
             // in an array of System.Reflection.MemberInfo objects.
@@ -105,20 +111,9 @@ namespace Daniels.TriList
 
             }
 
-            // Subscribe to events from trilist and execute Actions assinged on UserObject property
-            foreach (BasicTriList triList in _triLists)
-                triList.SigChange += (s, e) =>
-                {
-                    if (e.Sig.UserObject is Action<bool>)
-                        (e.Sig.UserObject as Action<bool>)(e.Sig.BoolValue);
-                    else if (e.Sig.UserObject is Action<ushort>)
-                        (e.Sig.UserObject as Action<ushort>)(e.Sig.UShortValue);
-                    else if (e.Sig.UserObject is Action<string>)
-                        (e.Sig.UserObject as Action<string>)(e.Sig.StringValue);
-                };
         }
 
-        private Action<T> CreateMemberAction<T>(MemberInfo memberInfo)
+        protected Action<T> CreateMemberAction<T>(MemberInfo memberInfo)
         {
             Action<T> action = null;
             if (memberInfo is MethodInfo)
@@ -127,56 +122,6 @@ namespace Daniels.TriList
                 action = (value) => (memberInfo as FieldInfo).SetValue(this, value);
             return action;
         }
-
-        protected void SetJoinValue(bool value)
-        {
-#if SSHARP
-            //SSharpReflectionExtensions has bug in parsing StackFrame - Current is actually calling method returned...
-            JoinAttribute[] joinAttributes = MethodBaseEx.GetCurrentMethod().GetCustomAttributes(typeof(JoinAttribute).GetCType(), false) as JoinAttribute[];
-            if (joinAttributes != null && joinAttributes.Length > 0)
-                SetJoinValue(joinAttributes[0], value);
-#else
-            //SetJoinValue(MethodBase.GetCurrentMethod().GetCustomAttribute<JoinAttribute>(), value);
-#endif
-        }
-
-#if SSHARP
-        protected void SetJoinValue(ushort value)
-        {
-            //SSharpReflectionExtensions has bug in parsing StackFrame - Current is actually calling method returned...
-            JoinAttribute[] joinAttributes = MethodBaseEx.GetCurrentMethod().GetCustomAttributes(typeof(JoinAttribute).GetCType(), false) as JoinAttribute[];
-            if(joinAttributes != null && joinAttributes.Length > 0)
-                SetJoinValue(joinAttributes[0], value);
-        }
-#else
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        protected void SetJoinValue(ushort value, [CallerMemberName] string methodName = null)
-        {
-            MemberInfo memberInfo = this.GetType().GetMembers().Where(m => m.Name == methodName).FirstOrDefault();
-            if(memberInfo != null)
-                Crestron.SimplSharp.CrestronConsole.PrintLine("CrestronTriListExtentions: CallingMethod: {0}", memberInfo.Name);
-            SetJoinValue(memberInfo.GetCustomAttribute<JoinAttribute>(), value);
-        }
-#endif
-
-#if SSHARP
-        protected void SetJoinValue(string value)
-        {
-            //SSharpReflectionExtensions has bug in parsing StackFrame - Current is actually calling method returned...
-            JoinAttribute[] joinAttributes = MethodBaseEx.GetCurrentMethod().GetCustomAttributes(typeof(JoinAttribute).GetCType(), false) as JoinAttribute[];
-            if (joinAttributes != null && joinAttributes.Length > 0)
-                SetJoinValue(joinAttributes[0], value);
-        }
-#else
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        protected void SetJoinValue(string value, [CallerMemberName] string methodName = null)
-        {
-            MemberInfo memberInfo = this.GetType().GetMembers().Where(m => m.Name == methodName).FirstOrDefault();
-            if (memberInfo != null)
-                Crestron.SimplSharp.CrestronConsole.PrintLine("CrestronTriListExtentions: CallingMethod: {0}", memberInfo.Name);
-            SetJoinValue(memberInfo.GetCustomAttribute<JoinAttribute>(), value);
-        }
-#endif
 
         protected void SetJoinValue(JoinAttribute joinAttribute, bool value)
         {
@@ -198,6 +143,7 @@ namespace Daniels.TriList
             foreach (BasicTriList triList in _triLists)
                 triList.BooleanOutput[_digitalOffset + joinNumber].UserObject = CreateMemberAction<bool>(memberInfo);
         }
+
         protected void SubscribeAnalogJoin(ushort joinNumber, MemberInfo memberInfo)
         {
             foreach (BasicTriList triList in _triLists)

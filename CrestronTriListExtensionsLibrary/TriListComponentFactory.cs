@@ -2,15 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 
-#if SSHARP
-using Crestron.SimplSharp.Reflection;
-using Crestron.SimplSharp.Reflection.Emit;
-#else
 using System.Reflection;
-
 using System.Reflection.Emit;
-using System.Runtime.InteropServices;
-#endif
 
 
 namespace Daniels.TriList
@@ -31,13 +24,8 @@ namespace Daniels.TriList
         public static T CreateTriListComponent<T>(params object[] args) where T: TriListComponent
         {
             Crestron.SimplSharp.CrestronConsole.PrintLine("CrestronTriListExtentions: enter");
-
-#if SSHARP
-            CType originalType = typeof(T).GetCType();
-#else
             Type originalType = typeof(T);
             Type proxyType;
-#endif
 
             Crestron.SimplSharp.CrestronConsole.PrintLine("CrestronTriListExtentions: pre-lock");
             lock (_typeCache)
@@ -73,14 +61,7 @@ namespace Daniels.TriList
                     // Loop through all, event methods usualy protected, i.e. non-public
                     foreach (MemberInfo memberInfo in originalType.GetMembers(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
                     {
-#if SSHARP
-                        JoinAttribute joinAttribute = (JoinAttribute)CAttribute.GetCustomAttribute(memberInfo, typeof(JoinAttribute));
-#else
                         JoinAttribute joinAttribute = (JoinAttribute)Attribute.GetCustomAttribute(memberInfo, typeof(JoinAttribute));
-#endif
-
-#if SSHARP
-#else
                         // Create new Virtual property with setters.
                         if (joinAttribute != null && memberInfo is PropertyInfo propertyInfo)
                         {
@@ -137,7 +118,6 @@ namespace Daniels.TriList
                                 joinBaseProperty.SetSetMethod(joinPropertySet);
                             }
                         }
-#endif
                     }
 
                     // Adding original constructors
@@ -166,8 +146,8 @@ namespace Daniels.TriList
                             constructorBuilderILGenerator.Emit(OpCodes.Ldc_I4, kv.Key);
                             // convert loaded in stack int value back to ushort
                             constructorBuilderILGenerator.Emit(OpCodes.Conv_U2);
-
-                            constructorBuilderILGenerator.Emit(OpCodes.Ld);
+                            // Load address of the destination field that subscription will update
+                            //constructorBuilderILGenerator.Emit(OpCodes.Ld);
 
                             if (kv.Value.FieldType == typeof(bool))
                                 constructorBuilderILGenerator.Emit(OpCodes.Callvirt, digitalJoinSubscriber);
